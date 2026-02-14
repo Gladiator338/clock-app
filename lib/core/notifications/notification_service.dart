@@ -58,12 +58,20 @@ class NotificationService {
     await _plugin.cancel(_timerEndId);
   }
 
+  static int _notificationIdForAlarm(String alarmId) {
+    int h = 0;
+    for (int i = 0; i < alarmId.length; i++) {
+      h = ((h * 31) + alarmId.codeUnitAt(i)) & 0x7FFFFFFF;
+    }
+    return h == 0 ? 1 : h;
+  }
+
   Future<void> scheduleAlarm(AlarmModel alarm) async {
     if (kIsWeb) return;
     await init();
     final scheduled = _nextOccurrence(alarm);
     if (scheduled == null) return;
-    final id = alarm.id.hashCode.abs() % 0x7FFFFFFF;
+    final id = _notificationIdForAlarm(alarm.id);
     const android = AndroidNotificationDetails(
       'alarm_channel',
       'Alarm',
@@ -116,7 +124,7 @@ class NotificationService {
 
   Future<void> cancelAlarm(String alarmId) async {
     if (kIsWeb) return;
-    final id = alarmId.hashCode.abs() % 0x7FFFFFFF;
+    final id = _notificationIdForAlarm(alarmId);
     await _plugin.cancel(id);
   }
 }

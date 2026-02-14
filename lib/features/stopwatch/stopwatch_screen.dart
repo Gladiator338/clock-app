@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:clock_app/features/stopwatch/stopwatch_run_model.dart';
 import 'package:clock_app/features/stopwatch/stopwatch_history_repository.dart';
 import 'package:clock_app/features/stopwatch/stopwatch_run_detail_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:clock_app/shared/confirm_dialog.dart';
+import 'package:clock_app/shared/preferences_holder.dart';
 
 class StopwatchScreen extends StatefulWidget {
   const StopwatchScreen({super.key});
@@ -35,22 +36,7 @@ class _StopwatchScreenState extends State<StopwatchScreen> {
   }
 
   Future<void> _deleteHistoryAt(int index) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete this run?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
+    final ok = await showConfirmDialog(context, title: 'Delete this run?');
     if (ok == true && mounted) {
       await StopwatchHistoryRepository.instance.removeAt(index);
       await _loadHistory();
@@ -58,7 +44,7 @@ class _StopwatchScreenState extends State<StopwatchScreen> {
   }
 
   Future<void> _restore() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await PreferencesHolder.instance.prefs;
     final startEpoch = prefs.getInt(_prefKeyStartEpoch);
     final lapsRaw = prefs.getStringList(_prefKeyLaps);
     if (lapsRaw != null) {
@@ -88,13 +74,13 @@ class _StopwatchScreenState extends State<StopwatchScreen> {
   }
 
   Future<void> _persistStart() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await PreferencesHolder.instance.prefs;
     final start = DateTime.now().subtract(Duration(milliseconds: _elapsedMillis));
     await prefs.setInt(_prefKeyStartEpoch, start.millisecondsSinceEpoch);
   }
 
   Future<void> _clearPersist() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await PreferencesHolder.instance.prefs;
     await prefs.remove(_prefKeyStartEpoch);
     await prefs.remove(_prefKeyLaps);
   }
@@ -117,7 +103,7 @@ class _StopwatchScreenState extends State<StopwatchScreen> {
 
   void _lap() {
     setState(() => _laps.add(_elapsedMillis));
-    SharedPreferences.getInstance().then((prefs) {
+    PreferencesHolder.instance.prefs.then((prefs) {
       prefs.setStringList(
         _prefKeyLaps,
         _laps.map((e) => e.toString()).toList(),

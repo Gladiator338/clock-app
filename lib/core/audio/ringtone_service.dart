@@ -7,6 +7,8 @@ class RingtoneService {
   RingtoneService._();
   static final instance = RingtoneService._();
 
+  static const _allowedAssetSounds = ['sounds/alarm.wav', 'sounds/timer_end.wav'];
+
   AudioPlayer? _assetPlayer;
   bool _usingAsset = false;
 
@@ -16,7 +18,7 @@ class RingtoneService {
     final soundKey = isTimer
         ? await prefs.getTimerSound()
         : await prefs.getAlarmSound();
-    if (soundKey == 'system' || soundKey.isEmpty) {
+    if (soundKey == 'system' || soundKey.isEmpty || !_allowedAssetSounds.contains(soundKey)) {
       await FlutterRingtonePlayer().play(
         android: AndroidSounds.notification,
         ios: IosSounds.glass,

@@ -225,11 +225,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  static const _alarmOptions = ['system', 'sounds/alarm.wav', 'sounds/timer_end.wav'];
-  static const _timerOptions = ['system', 'sounds/timer_end.wav', 'sounds/alarm.wav'];
-
   void _showSoundPicker(BuildContext context, {required bool isAlarm}) {
-    final options = isAlarm ? _alarmOptions : _timerOptions;
     showModalBottomSheet<void>(
       context: context,
       builder: (ctx) => SafeArea(

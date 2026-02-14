@@ -6,7 +6,8 @@ import 'package:clock_app/core/audio/ringtone_service.dart';
 import 'package:clock_app/core/notifications/notification_service.dart';
 import 'package:clock_app/features/timer/timer_run_model.dart';
 import 'package:clock_app/features/timer/timer_history_repository.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:clock_app/shared/confirm_dialog.dart';
+import 'package:clock_app/shared/preferences_holder.dart';
 
 class TimerScreen extends StatefulWidget {
   const TimerScreen({super.key});
@@ -19,7 +20,6 @@ class _TimerScreenState extends State<TimerScreen> {
   static const _prefKeyEndTime = 'timer_end_time_epoch_ms';
 
   int _remainingSeconds = 0;
-  int _lastRunTotalSeconds = 0;
   Timer? _tickTimer;
   bool _isRunning = false;
   bool _isRinging = false;
@@ -38,22 +38,7 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   Future<void> _deleteHistoryAt(int index) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete this timer run?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
+    final ok = await showConfirmDialog(context, title: 'Delete this timer run?');
     if (ok == true && mounted) {
       await TimerHistoryRepository.instance.removeAt(index);
       await _loadHistory();
@@ -61,7 +46,7 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   Future<void> _loadPersisted() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await PreferencesHolder.instance.prefs;
     final endMs = prefs.getInt(_prefKeyEndTime);
     if (endMs != null) {
       final end = DateTime.fromMillisecondsSinceEpoch(endMs);
@@ -96,7 +81,7 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   Future<void> _onTimerEnd() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await PreferencesHolder.instance.prefs;
     await prefs.remove(_prefKeyEndTime);
     setState(() => _isRinging = true);
     if (!kIsWeb) {
@@ -106,14 +91,13 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   Future<void> _persistEndTime(DateTime end) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await PreferencesHolder.instance.prefs;
     await prefs.setInt(_prefKeyEndTime, end.millisecondsSinceEpoch);
   }
 
   void _start(int hours, int minutes, int seconds) {
     final total = hours * 3600 + minutes * 60 + seconds;
     if (total <= 0) return;
-    _lastRunTotalSeconds = total;
     TimerHistoryRepository.instance.add(TimerRunRecord(
       durationSeconds: total,
       endTimestamp: DateTime.now(),
@@ -147,7 +131,7 @@ class _TimerScreenState extends State<TimerScreen> {
       _isRunning = false;
       _isRinging = false;
     });
-    SharedPreferences.getInstance().then((prefs) => prefs.remove(_prefKeyEndTime));
+    PreferencesHolder.instance.prefs.then((prefs) => prefs.remove(_prefKeyEndTime));
     RingtoneService.instance.stop();
   }
 
