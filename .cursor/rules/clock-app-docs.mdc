@@ -1,0 +1,20 @@
+---
+description: Refer to project docs before changing the clock-app codebase
+globs: 
+  - "**/*.dart"
+  - "**/pubspec.yaml"
+  - "**/README.md"
+---
+
+# Clock app – project docs
+
+Before making changes to this project, read and use:
+
+- **docs/SCOPE.md** – In-scope vs out-of-scope; project boundaries. Check before adding or removing scope.
+- **docs/DECISIONS.md** – Architecture and development decisions. Follow existing decisions; record new ones here.
+- **docs/FEATURES.md** – Implemented and planned features. Update when adding, removing, or changing a feature.
+- **docs/NOTATION.md** – Naming, file layout, and conventions. Follow these when adding or editing code.
+- **docs/UI_DESIGN.md** – UI tokens, layouts, and components. Follow and update when changing the UI.
+- **docs/TASK_LIST.md** – Task list (UI, tests, fixes, assets). Check for open items and retest plan.
+
+After changing scope, decisions, features, conventions, or UI, update the corresponding file in **docs/**.

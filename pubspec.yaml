@@ -1,0 +1,32 @@
+name: clock_app
+description: A minimalistic clock app with Clock, Timer, Alarm, and Stopwatch for Android and iOS.
+version: 1.0.0+1
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  shared_preferences: ^2.3.3
+  flutter_ringtone_player: ^4.0.0
+  flutter_local_notifications: ^18.0.0
+  android_alarm_manager_plus: ^4.0.0
+  home_widget: ^0.9.0
+  intl: ^0.20.0
+  timezone: ^0.9.0
+  flutter_timezone: ^5.0.1
+  audioplayers: ^6.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+    - assets/sounds/
