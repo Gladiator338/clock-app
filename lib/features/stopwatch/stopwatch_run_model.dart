@@ -12,12 +12,28 @@ class StopwatchRunRecord {
         'laps': laps,
       };
 
+  static StopwatchRunRecord? fromJsonSafe(Map<String, dynamic>? json) {
+    if (json == null) return null;
+    try {
+      final totalMillis = json['totalMillis'] is int ? json['totalMillis'] as int : null;
+      if (totalMillis == null || totalMillis < 0) return null;
+      final lapsList = json['laps'];
+      List<int> laps = [];
+      if (lapsList is List<dynamic>) {
+        laps = lapsList
+            .map((e) => e is int ? e : (e is String ? int.tryParse(e) : null))
+            .where((e) => e != null && e >= 0)
+            .cast<int>()
+            .toList();
+      }
+      return StopwatchRunRecord(totalMillis: totalMillis, laps: laps);
+    } catch (_) {
+      return null;
+    }
+  }
+
   static StopwatchRunRecord fromJson(Map<String, dynamic> json) {
-    final lapsList = json['laps'] as List<dynamic>?;
-    return StopwatchRunRecord(
-      totalMillis: json['totalMillis'] as int,
-      laps: lapsList?.map((e) => e as int).toList() ?? [],
-    );
+    return fromJsonSafe(json)!;
   }
 
   String get formattedTotal {

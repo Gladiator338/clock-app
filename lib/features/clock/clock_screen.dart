@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:clock_app/core/widget_bridge/widget_bridge.dart';
 import 'package:clock_app/shared/settings_preference.dart';
+import 'package:clock_app/shared/time_format_util.dart';
 
 class ClockScreen extends StatefulWidget {
   const ClockScreen({super.key});
@@ -21,11 +21,9 @@ class _ClockScreenState extends State<ClockScreen> {
 
   void _updateTime() {
     final now = DateTime.now();
-    final time = _is24Hour
-        ? DateFormat('HH:mm').format(now)
-        : DateFormat('hh:mm').format(now);
-    final period = _is24Hour ? '' : DateFormat('a').format(now);
-    final date = DateFormat('EEEE, MMMM d').format(now);
+    final time = formatTimeOfDay(now.hour, now.minute, _is24Hour);
+    final period = _is24Hour ? '' : formatPeriod(now.hour);
+    final date = formatLongDate(now);
     setState(() {
       _time = time;
       _period = period;

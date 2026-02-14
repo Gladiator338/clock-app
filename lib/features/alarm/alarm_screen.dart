@@ -4,17 +4,11 @@ import 'package:clock_app/features/alarm/alarm_model.dart';
 import 'package:clock_app/features/alarm/alarm_repository.dart';
 import 'package:clock_app/core/notifications/notification_service.dart';
 import 'package:clock_app/shared/settings_preference.dart';
+import 'package:clock_app/shared/confirm_dialog.dart';
+import 'package:clock_app/shared/route_builders.dart';
+import 'package:clock_app/shared/time_format_util.dart';
 
-final _alarmRepo = AlarmRepository();
-
-String _formatAlarmTime(int hour, int minute, bool is24Hour) {
-  if (is24Hour) {
-    return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-  }
-  final h = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-  final period = hour < 12 ? 'AM' : 'PM';
-  return '${h.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
-}
+final _alarmRepo = AlarmRepository.instance;
 
 const List<String> _weekdayShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -50,10 +44,12 @@ class _AlarmScreenState extends State<AlarmScreen> {
 
   Future<void> _load() async {
     final list = await _alarmRepo.getAll();
-    if (mounted) setState(() {
-      _alarms = list;
-      _loading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _alarms = list;
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _toggle(AlarmModel alarm) async {
@@ -69,22 +65,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
 
   Future<void> _addAlarm() async {
     final result = await Navigator.of(context).push<AlarmModel?>(
-      PageRouteBuilder<AlarmModel?>(
-        pageBuilder: (_, __, ___) => AlarmEditScreen(is24Hour: _is24Hour),
-        transitionsBuilder: (_, animation, __, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.03),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
-              child: child,
-            ),
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 280),
-      ),
+      fadeSlideRoute<AlarmModel?>(child: AlarmEditScreen(is24Hour: _is24Hour)),
     );
     if (result != null) {
       await _alarmRepo.save(result);
@@ -99,22 +80,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
 
   Future<void> _editAlarm(AlarmModel alarm) async {
     final result = await Navigator.of(context).push<AlarmModel?>(
-      PageRouteBuilder<AlarmModel?>(
-        pageBuilder: (_, __, ___) => AlarmEditScreen(alarm: alarm, is24Hour: _is24Hour),
-        transitionsBuilder: (_, animation, __, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.03),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
-              child: child,
-            ),
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 280),
-      ),
+      fadeSlideRoute<AlarmModel?>(child: AlarmEditScreen(alarm: alarm, is24Hour: _is24Hour)),
     );
     if (result != null) {
       await _alarmRepo.save(result);
@@ -129,22 +95,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
   }
 
   Future<void> _deleteAlarm(AlarmModel alarm) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete this alarm?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
+    final ok = await showConfirmDialog(context, title: 'Delete this alarm?');
     if (ok == true && mounted) {
       await _alarmRepo.delete(alarm.id);
       await NotificationService.instance.cancelAlarm(alarm.id);
@@ -181,7 +132,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
                         separatorBuilder: (_, __) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final alarm = _alarms[index];
-                          final time = _formatAlarmTime(alarm.hour, alarm.minute, _is24Hour);
+                          final time = formatTimeOfDay(alarm.hour, alarm.minute, _is24Hour);
                           final subtitle = alarm.label?.isNotEmpty == true
                               ? '${alarm.label!} • ${_repeatSummary(alarm)}'
                               : _repeatSummary(alarm);
@@ -277,15 +228,24 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
     super.dispose();
   }
 
+  static String? _sanitizeAlarmLabel(String? raw) {
+    if (raw == null) return null;
+    final t = raw.replaceAll(RegExp(r'[\r\n\t\x00-\x1f]'), ' ').trim();
+    if (t.isEmpty) return null;
+    return t.length > AlarmModel.maxLabelLength
+        ? t.substring(0, AlarmModel.maxLabelLength)
+        : t;
+  }
+
   void _save() {
-    final label = _labelController.text.trim();
+    final label = _sanitizeAlarmLabel(_labelController.text);
     final repeatType = _repeatOn ? _repeatType : 'once';
     final repeatDays = _repeatOn && _repeatType == 'weekdays' ? List<int>.from(_repeatDays) : <int>[];
     final model = AlarmModel(
       id: widget.alarm?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       hour: _hour,
       minute: _minute,
-      label: label.isEmpty ? null : label,
+      label: label,
       enabled: _enabled,
       repeatType: repeatType,
       repeatDays: repeatDays,
@@ -294,22 +254,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   }
 
   Future<void> _confirmDelete() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete alarm?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
+    final ok = await showConfirmDialog(context, title: 'Delete alarm?');
     if (ok == true && mounted && widget.alarm != null) {
       await _alarmRepo.delete(widget.alarm!.id);
       await NotificationService.instance.cancelAlarm(widget.alarm!.id);
@@ -357,7 +302,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              _formatAlarmTime(_hour, _minute, widget.is24Hour),
+              formatTimeOfDay(_hour, _minute, widget.is24Hour),
               style: theme.textTheme.headlineMedium,
               textAlign: TextAlign.center,
             ),
@@ -409,8 +354,11 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                       selected: selected,
                       onSelected: (v) {
                         setState(() {
-                          if (v) _repeatDays.add(day);
-                          else _repeatDays.remove(day);
+                          if (v) {
+                            _repeatDays.add(day);
+                          } else {
+                            _repeatDays.remove(day);
+                          }
                           _repeatDays.sort();
                         });
                       },

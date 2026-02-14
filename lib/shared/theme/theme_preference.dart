@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:clock_app/shared/preferences_holder.dart';
 import 'app_theme.dart';
 
 const _keyThemeMode = 'clock_app_theme_mode';
@@ -10,7 +10,7 @@ class ThemePreference {
   static final instance = ThemePreference._();
 
   Future<AppThemeMode> getThemeMode() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await PreferencesHolder.instance.prefs;
     final value = prefs.getString(_keyThemeMode);
     switch (value) {
       case 'light':
@@ -23,7 +23,7 @@ class ThemePreference {
   }
 
   Future<void> setThemeMode(AppThemeMode mode) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await PreferencesHolder.instance.prefs;
     final value = mode == AppThemeMode.light
         ? 'light'
         : mode == AppThemeMode.dark
@@ -45,7 +45,7 @@ class ThemePreference {
 
   /// Theme color key: 'default' | 'blue' | 'green' | 'red' | 'grey'
   Future<String> getThemeColor() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await PreferencesHolder.instance.prefs;
     final v = prefs.getString(_keyThemeColor);
     if (v == null) return 'default';
     if (['default', 'blue', 'green', 'red', 'grey'].contains(v)) return v;
@@ -53,7 +53,7 @@ class ThemePreference {
   }
 
   Future<void> setThemeColor(String value) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await PreferencesHolder.instance.prefs;
     await prefs.setString(_keyThemeColor, value);
   }
 }

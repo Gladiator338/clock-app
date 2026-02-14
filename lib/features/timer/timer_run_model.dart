@@ -15,12 +15,27 @@ class TimerRunRecord {
         'completed': completed,
       };
 
+  static TimerRunRecord? fromJsonSafe(Map<String, dynamic>? json) {
+    if (json == null) return null;
+    try {
+      final durationSeconds = json['durationSeconds'] is int ? json['durationSeconds'] as int : null;
+      final endTs = json['endTimestamp'];
+      final endMs = endTs is int ? endTs : (endTs is String ? int.tryParse(endTs) : null);
+      if (durationSeconds == null || durationSeconds < 0 || endMs == null) return null;
+      final endTimestamp = DateTime.fromMillisecondsSinceEpoch(endMs);
+      final completed = json['completed'] is bool ? json['completed'] as bool : true;
+      return TimerRunRecord(
+        durationSeconds: durationSeconds,
+        endTimestamp: endTimestamp,
+        completed: completed,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   static TimerRunRecord fromJson(Map<String, dynamic> json) {
-    return TimerRunRecord(
-      durationSeconds: json['durationSeconds'] as int,
-      endTimestamp: DateTime.fromMillisecondsSinceEpoch(json['endTimestamp'] as int),
-      completed: json['completed'] as bool? ?? true,
-    );
+    return fromJsonSafe(json)!;
   }
 
   String get formattedDuration {

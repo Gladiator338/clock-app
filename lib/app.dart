@@ -4,6 +4,7 @@ import 'package:clock_app/features/timer/timer_screen.dart';
 import 'package:clock_app/features/alarm/alarm_screen.dart';
 import 'package:clock_app/features/stopwatch/stopwatch_screen.dart';
 import 'package:clock_app/features/settings/settings_screen.dart';
+import 'package:clock_app/shared/route_builders.dart';
 import 'package:clock_app/shared/theme/app_theme.dart';
 import 'package:clock_app/shared/theme/theme_preference.dart';
 
@@ -45,8 +46,8 @@ class _ClockAppState extends State<ClockApp> {
     if (navigator == null) return;
     try {
       final result = await navigator.push<AppThemeMode>(
-        PageRouteBuilder<AppThemeMode>(
-          pageBuilder: (_, __, ___) => SettingsScreen(
+        fadeSlideRoute<AppThemeMode>(
+          child: SettingsScreen(
             onThemeChanged: (mode) {
               if (mode != null && mounted) setState(() => _themeMode = mode);
             },
@@ -54,19 +55,8 @@ class _ClockAppState extends State<ClockApp> {
               if (color != null && mounted) setState(() => _themeColor = color);
             },
           ),
-          transitionsBuilder: (_, animation, __, child) {
-            return FadeTransition(
-              opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 0.02),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
-                child: child,
-              ),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 250),
+          duration: const Duration(milliseconds: 250),
+          slideOffset: 0.02,
         ),
       );
       if (mounted) {
